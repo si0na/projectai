@@ -128,7 +128,7 @@ const primaryRecommendation = analysis?.reason ? getPrimaryRecommendation(analys
                 <div className={`w-4 h-4 rounded-full ${getStatusColor(analysis.overallPortfolioRagStatus)}`}></div>
                 <div>
                   <p className="font-bold text-lg text-gray-900">{analysis.overallPortfolioRagStatus}</p>
-                  <p className="text-sm text-gray-600">Portfolio Health</p>
+                  <p className="text-sm text-gray-600">Tower Health</p>
                 </div>
               </div>
             </div>

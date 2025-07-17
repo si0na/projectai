@@ -193,46 +193,6 @@ export function WeeklyReportForm({ onSuccess, onCancel }: WeeklyReportFormProps)
 
         <FormField
           control={form.control}
-          name="ragStatus"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Project Health RAG Status</FormLabel>
-              <FormControl>
-                <RadioGroup 
-                  onValueChange={field.onChange} 
-                  defaultValue={field.value}
-                  className="flex space-x-6"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value={RAG_STATUS.GREEN} id="green" />
-                    <label htmlFor="green" className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 cursor-pointer">
-                      <div className="w-2 h-2 rounded-full bg-green-600 mr-2"></div>
-                      Green
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value={RAG_STATUS.AMBER} id="amber" />
-                    <label htmlFor="amber" className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 cursor-pointer">
-                      <div className="w-2 h-2 rounded-full bg-yellow-600 mr-2"></div>
-                      Amber
-                    </label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value={RAG_STATUS.RED} id="red" />
-                    <label htmlFor="red" className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 cursor-pointer">
-                      <div className="w-2 h-2 rounded-full bg-red-600 mr-2"></div>
-                      Red
-                    </label>
-                  </div>
-                </RadioGroup>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
           name="clientEscalation"
           render={({ field }) => (
             <FormItem>
