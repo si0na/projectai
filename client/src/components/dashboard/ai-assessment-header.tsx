@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Bot, BarChart3, Activity, Star } from "lucide-react";
+import { Bot, BarChart3, Activity, Star, Circle } from "lucide-react";
 import type { PortfolioAnalysis, Project } from "@shared/schema";
 
 export function AIAssessmentHeader() {
@@ -107,8 +107,8 @@ const primaryRecommendation = analysis?.reason ? getPrimaryRecommendation(analys
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center">
-              <Bot className="h-6 w-6 text-white" />
+            <div className="w-12 h-12 bg-white border border-blue-200 rounded-2xl flex items-center justify-center">
+              <Circle className="h-7 w-7 text-blue-600" />
             </div>
             <div>
               <h2 className="text-2xl font-bold text-gray-900">AI Portfolio Intelligence</h2>

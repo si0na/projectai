@@ -14,6 +14,8 @@ import WeeklyReports from "@/pages/weekly-reports";
 import TechnicalReviews from "@/pages/technical-reviews";
 import LlmConfig from "@/pages/llm-config";
 import Analytics from "@/pages/analytics";
+import { StagewiseToolbar } from '@stagewise/toolbar-react';
+import ReactPlugin from '@stagewise-plugins/react';
 
 function AppContent() {
   const { user, isLoading } = useAuth();
@@ -74,6 +76,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        {import.meta.env.DEV && (
+          <StagewiseToolbar config={{ plugins: [ReactPlugin] }} />
+        )}
         <Toaster />
         <AppContent />
       </TooltipProvider>

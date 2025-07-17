@@ -1,0 +1,22 @@
+# Project Structure Guide
+
+This project is organized as follows:
+
+- The **client/** directory contains the frontend React application (TypeScript, Vite, TanStack Query, Lucide icons, Tailwind CSS).
+  - Main entry: [client/src/main.tsx](mdc:client/src/main.tsx)
+  - Pages: [client/src/pages/](mdc:client/src/pages/)
+  - Components: [client/src/components/](mdc:client/src/components/)
+  - Hooks: [client/src/hooks/](mdc:client/src/hooks/)
+  - Theme and styles: [client/src/theme.css](mdc:client/src/theme.css), [client/src/index.css](mdc:client/src/index.css)
+- The **server/** directory contains backend logic (API, routes, storage, Vite config).
+  - Main entry: [server/index.ts](mdc:server/index.ts)
+  - Routing: [server/routes.ts](mdc:server/routes.ts)
+- The **shared/** directory contains shared TypeScript types and schema definitions.
+  - [shared/schema.ts](mdc:shared/schema.ts)
+- Project configuration and tooling files are in the root (e.g., [package.json](mdc:package.json), [tsconfig.json](mdc:tsconfig.json), [tailwind.config.ts](mdc:tailwind.config.ts)).
+
+Use this structure to quickly locate files and understand the separation of concerns between frontend, backend, and shared code.
+description:
+globs:
+alwaysApply: false
+---
