@@ -94,10 +94,7 @@ app.use((req, res, next) => {
               const reports = await ExcelParser.parseWeeklyStatusReport(filePath);
               allReports = allReports.concat(reports);
               
-              // Update the global excelReportsData
-              const { excelReportsData } = await import('./storage');
-              excelReportsData.length = 0; // Clear existing data
-              excelReportsData.push(...allReports);
+              // Store in a more direct way
               log(`Auto-parsed ${reports.length} reports from ${file}`);
             } catch (fileError) {
               log(`Auto-parse failed for ${file}: ${fileError.message}`);
@@ -106,6 +103,11 @@ app.use((req, res, next) => {
           
           if (allReports.length > 0) {
             log(`Auto-processed ${allReports.length} total reports`);
+            
+            // Update the global excelReportsData with all reports
+            const storageModule = await import('./storage');
+            storageModule.setExcelReportsData(allReports);
+            console.log('Excel data updated, total reports:', allReports.length);
             
             // Generate AI summaries  
             try {

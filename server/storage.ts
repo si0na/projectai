@@ -823,4 +823,10 @@ export class MemStorage implements IStorage {
 export const storage = new MemStorage();
 
 // Export Excel reports data for API access
-export let excelReportsData: any[] = [];
+export const excelReportsData: any[] = [];
+
+// Function to update Excel reports data
+export function setExcelReportsData(data: any[]) {
+  excelReportsData.length = 0;
+  excelReportsData.push(...data);
+}
