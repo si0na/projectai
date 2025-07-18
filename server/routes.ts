@@ -68,6 +68,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get detailed project analysis with AI
+  app.get('/api/projects/:id/detailed-analysis', requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const project = await storage.getProject(id);
+      if (!project) {
+        return res.status(404).json({ message: 'Project not found' });
+      }
+
+      // Find the latest Excel report data for this project
+      const excelData = excelReportsData.find(report => 
+        report.projectName.toLowerCase().includes(project.name.toLowerCase()) ||
+        project.name.toLowerCase().includes(report.projectName.toLowerCase())
+      );
+
+      if (!excelData) {
+        return res.status(404).json({ message: 'No Excel data found for this project' });
+      }
+
+      // Generate detailed AI analysis
+      const analysis = await OpenAIService.generateDetailedProjectAnalysis(excelData);
+      res.json(analysis);
+    } catch (error) {
+      console.error('Error generating detailed analysis:', error);
+      res.status(500).json({ message: 'Failed to generate detailed analysis' });
+    }
+  });
+
   app.get('/api/projects/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);

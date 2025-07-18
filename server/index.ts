@@ -93,6 +93,11 @@ app.use((req, res, next) => {
               const filePath = path.join(excelDir, file);
               const reports = await ExcelParser.parseWeeklyStatusReport(filePath);
               allReports = allReports.concat(reports);
+              
+              // Update the global excelReportsData
+              const { excelReportsData } = await import('./storage');
+              excelReportsData.length = 0; // Clear existing data
+              excelReportsData.push(...allReports);
               log(`Auto-parsed ${reports.length} reports from ${file}`);
             } catch (fileError) {
               log(`Auto-parse failed for ${file}: ${fileError.message}`);

@@ -9,6 +9,7 @@ import {
   Calendar,
   ChevronLeft,
   ChevronRight,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { ProjectCard } from "@/components/dashboard/project-card";
 import { ProjectForm } from "@/components/forms/project-form";
+import ProjectDetailView from "@/components/ProjectDetailView";
 import { useAuth } from "@/hooks/use-auth";
 import { USER_ROLES } from "@/lib/constants";
 import type { Project, WeeklyStatusReport, User } from "@shared/schema";
@@ -40,6 +42,8 @@ export default function Projects() {
   const [managerFilter, setManagerFilter] = useState<string>("all");
   const [escalationFilter, setEscalationFilter] = useState<string>("all");
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [detailViewOpen, setDetailViewOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(12); // Show 12 projects per page
 
@@ -476,11 +480,24 @@ export default function Projects() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {currentProjects.map((project) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  latestReport={getLatestReportForProject(project.id)}
-                />
+                <div key={project.id} className="space-y-3">
+                  <ProjectCard
+                    project={project}
+                    latestReport={getLatestReportForProject(project.id)}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setSelectedProject(project);
+                      setDetailViewOpen(true);
+                    }}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    View Details
+                  </Button>
+                </div>
               ))}
             </div>
 
@@ -545,6 +562,18 @@ export default function Projects() {
               </div>
             )}
           </>
+        )}
+
+        {/* Project Detail View Dialog */}
+        {selectedProject && (
+          <ProjectDetailView
+            project={selectedProject}
+            open={detailViewOpen}
+            onOpenChange={(open) => {
+              setDetailViewOpen(open);
+              if (!open) setSelectedProject(null);
+            }}
+          />
         )}
       </div>
     </div>
