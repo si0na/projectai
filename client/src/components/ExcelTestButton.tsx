@@ -12,7 +12,7 @@ export default function ExcelTestButton() {
   const queryClient = useQueryClient();
 
   const parseExcelMutation = useMutation({
-    mutationFn: () => apiRequest('/api/excel/parse', { method: 'POST' }),
+    mutationFn: () => apiRequest('POST', '/api/excel/parse'),
     onSuccess: (data) => {
       setResult(data);
       queryClient.invalidateQueries({ queryKey: ['/api/portfolio-analysis'] });

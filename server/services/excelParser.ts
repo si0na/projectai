@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+// Dynamic import to handle ESM issues with XLSX
 import path from 'path';
 import fs from 'fs';
 
@@ -20,7 +20,7 @@ export interface ExcelReportData {
 }
 
 export class ExcelParser {
-  static parseWeeklyStatusReport(filePath: string): ExcelReportData[] {
+  static async parseWeeklyStatusReport(filePath: string): Promise<ExcelReportData[]> {
     try {
       console.log(`Attempting to parse Excel file: ${filePath}`);
       
@@ -29,7 +29,10 @@ export class ExcelParser {
         throw new Error(`Excel file not found: ${filePath}`);
       }
       
-      // Read the Excel file
+      // Read the Excel file using createRequire for ES modules
+      const { createRequire } = await import('module');
+      const require = createRequire(import.meta.url);
+      const XLSX = require('xlsx');
       const workbook = XLSX.readFile(filePath, { cellStyles: true });
       console.log(`Workbook loaded with sheets: ${workbook.SheetNames.join(', ')}`);
       

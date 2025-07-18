@@ -30,7 +30,7 @@ import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { AnalyticsOverview } from "@/components/dashboard/analytics-overview";
 import { ProjectCard } from "@/components/dashboard/project-card";
 import { WeeklyReportForm } from "@/components/forms/weekly-report-form";
-import ExcelTestButton from "@/components/ExcelTestButton";
+import ExcelAutoSummary from "@/components/ExcelAutoSummary";
 import { useAuth } from "@/hooks/use-auth";
 import { USER_ROLES } from "@/lib/constants";
 import type { Project, WeeklyStatusReport } from "@shared/schema";
@@ -347,7 +347,7 @@ export default function Dashboard() {
           {/* Right Column - Recent Activity */}
           <div className="space-y-8">
             {/* Excel Analysis */}
-            <ExcelTestButton />
+            <ExcelAutoSummary />
             
             <RecentActivity />
 
