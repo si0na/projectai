@@ -44,6 +44,10 @@ export interface IStorage {
   getLatestPortfolioAnalysis(): Promise<PortfolioAnalysis | undefined>;
   createPortfolioAnalysis(analysis: InsertPortfolioAnalysis): Promise<PortfolioAnalysis>;
   getPortfolioAnalysisHistory(limit?: number): Promise<PortfolioAnalysis[]>;
+  
+  // Excel Integration
+  createOrUpdateWeeklyReportFromExcel(reportData: any, summary: any): Promise<WeeklyStatusReport>;
+  getAIAnalyzedReports(): Promise<WeeklyStatusReport[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -729,6 +733,90 @@ export class MemStorage implements IStorage {
     return analyses
       .sort((a, b) => b.analysisDate!.getTime() - a.analysisDate!.getTime())
       .slice(0, limit);
+  }
+
+  // Excel Integration methods
+  async createOrUpdateWeeklyReportFromExcel(reportData: any, summary: any): Promise<WeeklyStatusReport> {
+    // Find existing project by name or create new one
+    let project = Array.from(this.projects.values()).find(p => 
+      p.name.toLowerCase() === reportData.projectName.toLowerCase()
+    );
+    
+    if (!project) {
+      // Create new project based on Excel data
+      const newProject = await this.createProject({
+        name: reportData.projectName,
+        codeId: `EXL-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
+        account: reportData.projectName.split(' ')[0] || 'Unknown',
+        customer: reportData.projectName.split(' ')[0] || 'Unknown',
+        engagementType: 'Development',
+        deliveryModel: 'Agile',
+        billingModel: reportData.billingModel || 'T&M',
+        projectImportance: 'Medium',
+        ragStatus: reportData.healthCurrentWeek,
+        scopeDescription: `Project imported from Excel: ${reportData.projectName}`,
+        projectManagerId: 1, // Default to admin user
+        deliveryManagerId: 3,
+        teamSquad: reportData.tower || 'Alpha Squad',
+        tower: reportData.tower,
+        fte: reportData.fte,
+        revenue: reportData.revenue,
+        startDate: new Date(),
+        plannedEndDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000), // 6 months from now
+        clientEscalation: reportData.clientEscalation !== 'None',
+        isActive: true,
+        aiMonitoringEnabled: true,
+        projectTags: ['excel-import'],
+        slaKpiMetrics: '99.5% uptime',
+        documentationUrl: ''
+      });
+      project = newProject;
+    }
+
+    // Check if report for this week already exists
+    const existingReports = await this.getWeeklyStatusReports(project.id);
+    const existingReport = existingReports.find(r => 
+      r.weekNumber === reportData.weekNumber && 
+      r.reportingDate.toDateString() === new Date().toDateString()
+    );
+
+    const reportPayload = {
+      projectId: project.id,
+      reportingDate: new Date(),
+      weekNumber: reportData.weekNumber,
+      publishStatus: true,
+      healthPreviousWeek: reportData.healthPreviousWeek,
+      healthCurrentWeek: reportData.healthCurrentWeek,
+      clientEscalation: reportData.clientEscalation,
+      updateForCurrentWeek: reportData.updateForCurrentWeek,
+      planForNextWeek: reportData.planForNextWeek,
+      issuesChallenges: reportData.issuesChallenges,
+      pathToGreen: reportData.pathToGreen,
+      resourcingStatus: reportData.resourcingStatus,
+      currentSdlcPhase: 'Development',
+      sqaRemarks: '',
+      fte: reportData.fte,
+      revenue: reportData.revenue,
+      tower: reportData.tower,
+      billingModel: reportData.billingModel,
+      aiStatus: summary.overallHealth,
+      aiAssessmentDescription: summary.summary,
+      submittedBy: 1
+    };
+
+    if (existingReport) {
+      // Update existing report
+      return await this.updateWeeklyStatusReport(existingReport.id, reportPayload) || existingReport;
+    } else {
+      // Create new report
+      return await this.createWeeklyStatusReport(reportPayload);
+    }
+  }
+
+  async getAIAnalyzedReports(): Promise<WeeklyStatusReport[]> {
+    return Array.from(this.weeklyStatusReports.values())
+      .filter(report => report.aiStatus && report.aiAssessmentDescription)
+      .sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime());
   }
 }
 

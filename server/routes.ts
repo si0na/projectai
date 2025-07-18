@@ -6,6 +6,8 @@ import {
   insertTechnicalReviewSchema, insertLlmConfigurationSchema 
 } from "@shared/schema";
 import { z } from "zod";
+import { ExcelParser } from "./services/excelParser";
+import { OpenAIService } from "./services/openaiService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
@@ -290,6 +292,140 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(sortedTrends);
     } catch (error) {
       res.status(500).json({ message: 'Failed to fetch trend data' });
+    }
+  });
+
+  // Excel Processing and AI Analysis endpoints
+  app.post('/api/excel/parse', requireAuth, async (req, res) => {
+    try {
+      const excelFiles = ExcelParser.getExcelFiles();
+      
+      if (excelFiles.length === 0) {
+        return res.status(404).json({ message: 'No Excel files found in public/excels directory' });
+      }
+      
+      const allReportsData = [];
+      const allSummaries = [];
+      
+      // Process each Excel file
+      for (const filePath of excelFiles) {
+        try {
+          const reportsData = ExcelParser.parseWeeklyStatusReport(filePath);
+          
+          // Generate AI summaries for each project
+          for (const reportData of reportsData) {
+            try {
+              const summary = await OpenAIService.generateProjectSummary(reportData);
+              allSummaries.push(summary);
+              allReportsData.push(reportData);
+              
+              // Store or update the report in the database
+              await storage.createOrUpdateWeeklyReportFromExcel(reportData, summary);
+            } catch (aiError) {
+              console.error(`AI analysis failed for ${reportData.projectName}:`, aiError);
+              // Continue with other projects even if one fails
+            }
+          }
+        } catch (parseError) {
+          console.error(`Failed to parse Excel file ${filePath}:`, parseError);
+          // Continue with other files
+        }
+      }
+      
+      // Generate portfolio-level summary
+      const portfolioSummary = await OpenAIService.generatePortfolioSummary(allSummaries);
+      
+      res.json({
+        message: 'Excel files processed successfully',
+        projectsProcessed: allSummaries.length,
+        portfolioSummary,
+        projectSummaries: allSummaries,
+        rawData: allReportsData
+      });
+    } catch (error) {
+      console.error('Excel processing error:', error);
+      res.status(500).json({ 
+        message: 'Failed to process Excel files',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  app.get('/api/excel/summaries', requireAuth, async (req, res) => {
+    try {
+      // Get recent AI-analyzed reports
+      const reports = await storage.getAIAnalyzedReports();
+      
+      res.json({
+        summaries: reports.map(report => ({
+          projectName: report.projectName,
+          weekNumber: report.weekNumber,
+          overallHealth: report.aiStatus,
+          summary: report.aiAssessmentDescription,
+          reportingDate: report.reportingDate,
+          healthTrend: `${report.healthPreviousWeek} → ${report.healthCurrentWeek}`
+        }))
+      });
+    } catch (error) {
+      console.error('Error fetching AI summaries:', error);
+      res.status(500).json({ message: 'Failed to fetch AI summaries' });
+    }
+  });
+
+  app.post('/api/excel/analyze-project/:projectId', requireAuth, async (req, res) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: 'Project not found' });
+      }
+      
+      // Get latest report for this project
+      const reports = await storage.getWeeklyStatusReports(projectId);
+      const latestReport = reports[reports.length - 1];
+      
+      if (!latestReport) {
+        return res.status(404).json({ message: 'No reports found for this project' });
+      }
+      
+      // Convert to Excel format for AI analysis
+      const reportData = {
+        projectName: project.name,
+        weekNumber: latestReport.weekNumber || 1,
+        healthPreviousWeek: latestReport.healthPreviousWeek || 'Green',
+        healthCurrentWeek: latestReport.healthCurrentWeek,
+        updateForCurrentWeek: latestReport.updateForCurrentWeek || '',
+        planForNextWeek: latestReport.planForNextWeek || '',
+        issuesChallenges: latestReport.issuesChallenges || '',
+        pathToGreen: latestReport.pathToGreen || '',
+        resourcingStatus: latestReport.resourcingStatus || '',
+        clientEscalation: latestReport.clientEscalation || 'None',
+        tower: latestReport.tower || '',
+        billingModel: latestReport.billingModel || '',
+        fte: latestReport.fte || '',
+        revenue: latestReport.revenue || ''
+      };
+      
+      const summary = await OpenAIService.generateProjectSummary(reportData);
+      
+      // Update the report with AI analysis
+      await storage.updateWeeklyStatusReport(latestReport.id, {
+        aiStatus: summary.overallHealth,
+        aiAssessmentDescription: summary.summary
+      });
+      
+      res.json({
+        projectName: project.name,
+        summary,
+        updatedReport: latestReport.id
+      });
+    } catch (error) {
+      console.error('Project analysis error:', error);
+      res.status(500).json({ 
+        message: 'Failed to analyze project',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
