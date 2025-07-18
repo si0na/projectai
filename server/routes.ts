@@ -125,6 +125,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/ai-portfolio-analysis', async (req, res) => {
+    try {
+      // Import Excel data dynamically
+      const storageModule = await import('./storage');
+      const excelReportsData = storageModule.excelReportsData;
+      
+      if (!excelReportsData || excelReportsData.length === 0) {
+        return res.status(404).json({ message: 'No Excel data available for analysis' });
+      }
+      
+      const analysis = await OpenAIService.generatePortfolioAnalysis(excelReportsData);
+      res.json(analysis);
+    } catch (error) {
+      console.error('Error generating AI portfolio analysis:', error);
+      res.status(500).json({ message: 'Failed to generate AI portfolio analysis' });
+    }
+  });
+
   app.get('/api/projects/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);

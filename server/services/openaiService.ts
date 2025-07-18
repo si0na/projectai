@@ -339,6 +339,226 @@ Provide response in this exact JSON structure:
     };
   }
 
+  static async generatePortfolioAnalysis(excelReportsData: ExcelReportData[]): Promise<{
+    lastUpdated: string;
+    activeProjects: number;
+    immediateFocus: Array<{
+      project: string;
+      description: string;
+      type: 'red' | 'amber' | 'green';
+    }>;
+    amberRisk: Array<{
+      project: string;
+      description: string;
+    }>;
+    stableProjects: {
+      percentage: number;
+      description: string;
+    };
+    topRiskDriver: {
+      description: string;
+      impactedProjects: number;
+    };
+    keyAction: {
+      description: string;
+    };
+    statusCounts: {
+      green: number;
+      amber: number;
+      red: number;
+    };
+    continuousLearning: string;
+  }> {
+    if (!this.API_KEY) {
+      return this.generateFallbackPortfolioAnalysis(excelReportsData);
+    }
+
+    const portfolioData = excelReportsData.map(report => ({
+      project: report.projectName,
+      health: report.healthCurrentWeek,
+      issues: report.issuesChallenges,
+      escalation: report.clientEscalation,
+      resourcing: report.resourcingStatus,
+      update: report.updateForCurrentWeek,
+      pathToGreen: report.pathToGreen
+    }));
+
+    const prompt = `
+Analyze this portfolio of ${excelReportsData.length} projects and provide strategic insights in JSON format:
+
+${portfolioData.map(p => `
+Project: ${p.project}
+Health: ${p.health}
+Issues: ${p.issues}
+Escalation: ${p.escalation}
+Resourcing: ${p.resourcing}
+Update: ${p.update}
+Path to Green: ${p.pathToGreen}
+`).join('\n')}
+
+Provide response in this exact JSON structure:
+{
+  "lastUpdated": "current date",
+  "activeProjects": ${excelReportsData.length},
+  "immediateFocus": [
+    {
+      "project": "project name",
+      "description": "brief issue description",
+      "type": "red"
+    }
+  ],
+  "amberRisk": [
+    {
+      "project": "project name", 
+      "description": "risk description"
+    }
+  ],
+  "stableProjects": {
+    "percentage": 77,
+    "description": "X% of portfolio on track"
+  },
+  "topRiskDriver": {
+    "description": "main risk pattern (e.g., API dependencies)",
+    "impactedProjects": 3
+  },
+  "keyAction": {
+    "description": "primary recommended action"
+  },
+  "statusCounts": {
+    "green": 25,
+    "amber": 25, 
+    "red": 25
+  },
+  "continuousLearning": "insight about project patterns"
+}
+
+Focus on:
+- Immediate focus: Red status projects with critical blockers
+- Amber risk: Projects with delays or resource issues
+- Top risk driver: Common issue pattern across projects
+- Key action: Most important strategic recommendation
+- Continuous learning: Pattern recognition across projects
+`;
+
+    try {
+      const response = await axios.post(
+        this.API_URL,
+        {
+          model: 'gpt-4',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a senior portfolio manager analyzing project health across an organization. Provide strategic insights focusing on immediate actions, risk patterns, and portfolio-level recommendations.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.3,
+          max_tokens: 2000
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${this.API_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      const aiResponse = response.data.choices[0]?.message?.content;
+      if (!aiResponse) {
+        throw new Error('No response from OpenAI API');
+      }
+
+      return this.parsePortfolioAIResponse(aiResponse, excelReportsData);
+    } catch (error) {
+      console.error('Error calling OpenAI API for portfolio analysis:', error);
+      return this.generateFallbackPortfolioAnalysis(excelReportsData);
+    }
+  }
+
+  private static parsePortfolioAIResponse(response: string, excelReportsData: ExcelReportData[]) {
+    try {
+      const parsed = JSON.parse(response);
+      
+      // Calculate actual status counts
+      const statusCounts = {
+        green: excelReportsData.filter(r => r.healthCurrentWeek === 'Green').length,
+        amber: excelReportsData.filter(r => r.healthCurrentWeek === 'Amber').length,
+        red: excelReportsData.filter(r => r.healthCurrentWeek === 'Red').length
+      };
+
+      return {
+        lastUpdated: new Date().toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        }),
+        activeProjects: excelReportsData.length,
+        immediateFocus: parsed.immediateFocus || [],
+        amberRisk: parsed.amberRisk || [],
+        stableProjects: parsed.stableProjects || {
+          percentage: Math.round((statusCounts.green / excelReportsData.length) * 100),
+          description: `${Math.round((statusCounts.green / excelReportsData.length) * 100)}% of portfolio on track`
+        },
+        topRiskDriver: parsed.topRiskDriver || {
+          description: 'API dependencies',
+          impactedProjects: statusCounts.red
+        },
+        keyAction: parsed.keyAction || {
+          description: 'Escalate blockers and realign resources for at-risk projects'
+        },
+        statusCounts,
+        continuousLearning: parsed.continuousLearning || 'Continuously learning from your project patterns'
+      };
+    } catch (error) {
+      console.error('Error parsing portfolio AI response:', error);
+      return this.generateFallbackPortfolioAnalysis(excelReportsData);
+    }
+  }
+
+  private static generateFallbackPortfolioAnalysis(excelReportsData: ExcelReportData[]) {
+    const redProjects = excelReportsData.filter(r => r.healthCurrentWeek === 'Red');
+    const amberProjects = excelReportsData.filter(r => r.healthCurrentWeek === 'Amber');
+    const greenProjects = excelReportsData.filter(r => r.healthCurrentWeek === 'Green');
+
+    return {
+      lastUpdated: new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      }),
+      activeProjects: excelReportsData.length,
+      immediateFocus: redProjects.slice(0, 3).map(p => ({
+        project: p.projectName,
+        description: p.issuesChallenges || 'Critical issues require immediate attention',
+        type: 'red' as const
+      })),
+      amberRisk: amberProjects.slice(0, 2).map(p => ({
+        project: p.projectName,
+        description: p.issuesChallenges || 'Project requires monitoring and support'
+      })),
+      stableProjects: {
+        percentage: Math.round((greenProjects.length / excelReportsData.length) * 100),
+        description: `${Math.round((greenProjects.length / excelReportsData.length) * 100)}% of portfolio on track`
+      },
+      topRiskDriver: {
+        description: 'API dependencies (impacting multiple projects)',
+        impactedProjects: redProjects.length
+      },
+      keyAction: {
+        description: 'Escalate blockers and realign resources for at-risk projects'
+      },
+      statusCounts: {
+        green: greenProjects.length,
+        amber: amberProjects.length,
+        red: redProjects.length
+      },
+      continuousLearning: 'Continuously learning from your project patterns'
+    };
+  }
+
   static async generatePortfolioSummary(projectSummaries: ProjectSummary[]): Promise<{
     overallHealth: string;
     totalProjects: number;
